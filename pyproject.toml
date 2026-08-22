@@ -1,0 +1,17 @@
+[project]
+name = "mit2"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.141.1",
+    "numpy>=2.5.2",
+    "onnxruntime>=1.29.0",
+    "opencv-python-headless>=5.0.0.93",
+    "pillow>=12.3.0",
+    "python-multipart>=0.0.32",
+    "scipy>=1.18.1",
+    "ultralytics>=8.4.126",
+    "uvicorn[standard]>=0.52.4",
+]

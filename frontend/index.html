@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AEROSAFE-LUNAR // AI Planetary Landing Risk Assessment (SW08)</title>
+  
+  <!-- Modern Sci-Fi Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;800&family=Orbitron:wght@600;800;900&display=swap" rel="stylesheet" />
+  
+  <link rel="stylesheet" href="/static/css/hud.css" />
+</head>
+<body>
+  <!-- Top Navigation & Global Telemetry Header -->
+  <header class="hud-header">
+    <div class="brand-section">
+      <div class="brand-logo-icon">🚀</div>
+      <div>
+        <div class="brand-title">AEROSAFE-LUNAR</div>
+        <div style="font-size: 0.72rem; color: var(--text-dim); font-family: var(--font-mono); letter-spacing: 1px;">
+          AUTONOMOUS HAZARD AVOIDANCE & LANDING RISK OPTIMIZER
+        </div>
+      </div>
+      <span class="brand-badge" id="problemBadge">CHALLENGE: SW08</span>
+    </div>
+
+    <div class="header-telemetry">
+      <div class="telem-pill">
+        <span class="pulse-dot"></span>
+        <span id="engineBadge">AI ENGINE: ONNX & PT ACTIVE</span>
+      </div>
+      <div class="telem-pill" style="border-color: rgba(0, 242, 254, 0.3);">
+        <span style="color: var(--color-cyan);">⏱️</span>
+        <span id="missionClock">UTC 00:00:00</span>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <button class="btn btn-secondary" id="exportReportBtn">
+        📊 EXPORT MISSION BRIEFING
+      </button>
+    </div>
+  </header>
+
+  <!-- Main 3-Column Mission Control Grid -->
+  <main class="dashboard-grid">
+    
+    <!-- LEFT PANEL: INGESTION & CONTROLS DECK -->
+    <aside class="hud-panel">
+      <div class="panel-header">
+        <span class="panel-title">📡 TERRAIN INGEST & CONTROLS</span>
+        <span class="brand-badge">INPUT</span>
+      </div>
+      
+      <div class="panel-body">
+        <!-- Preset Planetary Scenarios -->
+        <div>
+          <div class="section-subtitle">PLANETARY RECON SCENARIOS</div>
+          <div class="preset-grid" id="presetGrid">
+            <!-- Populated dynamically via JS -->
+          </div>
+        </div>
+
+        <!-- Custom Image Upload Dropzone -->
+        <div>
+          <div class="section-subtitle">SURFACE SENSOR UPLOAD</div>
+          <div class="dropzone" id="dropzone">
+            <input type="file" id="fileInput" accept="image/*" style="display: none;" />
+            <div class="dropzone-icon">🛰️</div>
+            <div class="dropzone-text">Drop planetary satellite image or click to browse</div>
+          </div>
+        </div>
+
+        <!-- AI Engine Selector -->
+        <div class="control-group">
+          <div class="control-label-row">
+            <span>INFERENCE RUNTIME</span>
+            <span class="control-value" id="engineVal">best.onnx / best.pt</span>
+          </div>
+          <select class="hud-select" id="engineSelect">
+            <option value="auto">Auto (Optimal Engine)</option>
+            <option value="onnx">ONNX Runtime (best.onnx - Fast Edge)</option>
+            <option value="pt">PyTorch YOLO (best.pt)</option>
+          </select>
+        </div>
+
+        <!-- Lander Configuration Sliders -->
+        <div class="control-group">
+          <div class="control-label-row">
+            <span>LANDER FOOTPRINT RADIUS</span>
+            <span class="control-value" id="landerRadiusVal">45 px</span>
+          </div>
+          <input type="range" class="hud-slider" id="landerRadiusSlider" min="20" max="90" value="45" />
+        </div>
+
+        <div class="control-group">
+          <div class="control-label-row">
+            <span>SAFETY BUFFER MARGIN</span>
+            <span class="control-value" id="safetyMarginVal">25 px</span>
+          </div>
+          <input type="range" class="hud-slider" id="safetyMarginSlider" min="10" max="60" value="25" />
+        </div>
+
+        <div class="control-group">
+          <div class="control-label-row">
+            <span>DETECTION CONFIDENCE</span>
+            <span class="control-value" id="confVal">0.25</span>
+          </div>
+          <input type="range" class="hud-slider" id="confSlider" min="0.10" max="0.80" step="0.05" value="0.25" />
+        </div>
+
+        <!-- Primary Action Trigger -->
+        <button class="btn btn-primary" id="runScanBtn" style="margin-top: 6px;">
+          ⚡ INITIATE AI TERRAIN SCAN
+        </button>
+      </div>
+    </aside>
+
+    <!-- CENTER PANEL: SPACE HUD CANVAS VIEWPORT -->
+    <section class="hud-panel center-viewport-panel">
+      <!-- Viewport Toolbars / Layer Toggles -->
+      <div class="viewport-toolbar">
+        <div class="layer-toggles">
+          <span style="font-size: 0.72rem; color: var(--text-dim); font-family: var(--font-mono); margin-right: 4px;">LAYERS:</span>
+          <button class="layer-btn active" data-layer="annotated">HAZARD BOXES</button>
+          <button class="layer-btn active" data-layer="heatmap">RISK HEATMAP</button>
+          <button class="layer-btn active" data-layer="safeZones">SAFE ZONES</button>
+          <button class="layer-btn active" data-layer="grid">HUD GRID</button>
+        </div>
+
+        <div style="font-family: var(--font-mono); font-size: 0.76rem; color: var(--color-cyan);">
+          PROBE: <span id="probeCoord">HOVER / CLICK TERRAIN</span>
+        </div>
+      </div>
+
+      <!-- Canvas Rendering Viewport -->
+      <div class="canvas-container">
+        <div class="scanning-bar" id="scanningBar"></div>
+        <canvas id="terrainCanvas" width="640" height="640"></canvas>
+      </div>
+
+      <!-- Real-Time Interactive Coordinate Probe Footer -->
+      <div class="probe-info-bar">
+        <div>
+          <span>PROBE STATUS: </span>
+          <span id="probeStatus" class="probe-safety" style="color: var(--color-emerald);">CLICK ON MAP TO INSPECT RISK</span>
+        </div>
+        <div>
+          <span>TOUCHDOWN SAFETY: </span>
+          <span id="probeSafetyScore" class="probe-coord">--%</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT PANEL: DECISION SUPPORT & TELEMETRY CONSOLE -->
+    <aside class="hud-panel">
+      <div class="panel-header">
+        <span class="panel-title">🎯 MISSION TELEMETRY & DECISION</span>
+        <span class="brand-badge">GUIDANCE</span>
+      </div>
+
+      <div class="panel-body">
+        <!-- Executive Mission Verdict Banner -->
+        <div class="verdict-banner emerald" id="verdictBanner">
+          <div class="verdict-badge" id="verdictBadge">
+            <span>🟢</span> MISSION CLEARANCE: GO
+          </div>
+          <div class="verdict-text" id="verdictText">
+            Evaluating planetary terrain...
+          </div>
+        </div>
+
+        <!-- Telemetry Gauges -->
+        <div class="telemetry-metrics-grid">
+          <div class="metric-card">
+            <span class="metric-label">AI LATENCY</span>
+            <span class="metric-value" id="metricLatency">-- ms</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-label">ENGINE USED</span>
+            <span class="metric-value" id="metricEngine" style="color: var(--color-cyan);">--</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-label">HAZARD COVERAGE</span>
+            <span class="metric-value" id="metricCoverage">--%</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-label">OBSTACLES DETECTED</span>
+            <span class="metric-value" id="metricHazards" style="color: var(--color-amber);">--</span>
+          </div>
+        </div>
+
+        <!-- Charts: Radial Safety Gauge & Hazard Breakdown -->
+        <div style="display: flex; gap: 10px; align-items: center; justify-content: space-around;">
+          <canvas id="safetyRadialCanvas" width="130" height="130"></canvas>
+          <canvas id="hazardBreakdownCanvas" width="180" height="130"></canvas>
+        </div>
+
+        <!-- Recommended Landing Sites Carousel -->
+        <div>
+          <div class="section-subtitle">RECOMMENDED TOUCHDOWN SITES (RANKED)</div>
+          <div class="lz-list" id="lzList">
+            <!-- Landing zone cards populated dynamically -->
+          </div>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- DESCENT TRAJECTORY SIMULATION MODAL -->
+  <div class="modal-backdrop" id="simModal">
+    <div class="modal-window">
+      <div class="modal-header">
+        <span class="modal-title">🚀 AUTONOMOUS DESCENT TRAJECTORY SIMULATION</span>
+        <button class="btn btn-secondary" id="closeSimBtn" style="padding: 4px 10px;">&times; CLOSE</button>
+      </div>
+      <div class="modal-body">
+        <div class="sim-grid">
+          <div>
+            <div class="section-subtitle">OPTICAL RADAR & TARGET LOCK</div>
+            <canvas id="simRadarCanvas" class="sim-radar-canvas" width="360" height="240"></canvas>
+          </div>
+          <div>
+            <div class="section-subtitle">REAL-TIME FLIGHT TELEMETRY</div>
+            <div class="sim-telemetry-panel" id="simTelemetryContainer">
+              <!-- Dynamically rendered frames -->
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <div style="font-family: var(--font-mono); font-size: 0.76rem; color: var(--color-emerald);">
+          STATUS: GUIDANCE AUTOPILOT LOCKED
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MISSION REPORT EXPORT MODAL -->
+  <div class="modal-backdrop" id="reportModal">
+    <div class="modal-window" style="max-width: 680px;">
+      <div class="modal-header">
+        <span class="modal-title">📋 MISSION CLEARANCE BRIEFING REPORT</span>
+        <button class="btn btn-secondary" id="closeReportBtn" style="padding: 4px 10px;">&times; CLOSE</button>
+      </div>
+      <div class="modal-body">
+        <pre id="reportContent" style="background: rgba(0,0,0,0.5); padding: 14px; border-radius: 8px; font-family: var(--font-mono); font-size: 0.78rem; color: #cbd5e1; white-space: pre-wrap; max-height: 380px; overflow-y: auto;"></pre>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="window.print()">🖨️ PRINT BRIEFING</button>
+        <button class="btn btn-primary" id="downloadJsonBtn">💾 DOWNLOAD JSON REPORT</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript Entry Point -->
+  <script type="module" src="/static/js/hud.js"></script>
+</body>
+</html>
