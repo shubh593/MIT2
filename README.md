@@ -4,7 +4,7 @@
 
 An autonomous hazard-avoidance and landing-site optimization system. It detects terrain hazards from planetary surface imagery, builds a continuous spatial risk map, identifies and ranks safe touchdown zones, simulates a descent trajectory to the chosen site, and exports a mission-ready clearance report — all through a live Mission Control style dashboard.
 
----
+----
 
 ## Why this matters
 
